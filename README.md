@@ -323,10 +323,10 @@ On AMD's Ryzen™ AI 300 Series with dedicated NPUs for acceleration, you can no
 ### Setup environment (Windows only)
 
 - **Driver:** Make sure you have NPU drivers version **.280 or newer** installed. [Download latest drivers from here](https://account.amd.com/en/forms/downloads/ryzenai-eula-public-xef.html?filename=NPU_RAI1.5_280_WHQL.zip)
-- **Runtime libraries:** Download and install the necessary [runtime dependencies from here](https://account.amd.com/en/forms/downloads/ryzenai-eula-public-xef.html?filename=NPU_RAI1.5_280_WHQL.zip).
-- **Environment:** Extract the runtime package and set up the environment:
+- **Runtime libraries:** Download and install the necessary [runtime dependencies from here](https://account.amd.com/en/forms/downloads/ryzenai-eula-public-xef.html?filename=flexmlrt1.7.0-win.zip).
+- **Configure Environment:** Extract the runtime package and set up the environment:
   ```powershell
-  tar xvf flexmlrt1.7rc3.zip
+  tar xvf flexmlrt1.7.0-win.zip
   flexmlrt\setup.bat
   ```
 Your environment is now ready.
@@ -342,16 +342,17 @@ cmake --build build -j --config Release
 
 - All NPU-supported Whisper models and their compiled `.rai` cache files are available in this collection:  
   https://huggingface.co/collections/amd/ryzen-ai-16-whisper-npu-optimized-onnx-models
-- Download the `.rai` file matching your desired model, and place it in your `models/` directory alongside its corresponding `ggml-<...>.bin` file.
+- Download the pre-compiled `.rai` cache file matching your desired model, and place it in your `models/` directory alongside its corresponding `ggml-<...>.bin` file.
+  The cache file must be named with the `-encoder-vitisai.rai` suffix. For example, if your model file is named `ggml-small.bin`, the cache file should be named `ggml-small-encoder-vitisai.rai`.
+
 
 > **Note:** The ".rai" models from Hugging Face are pre-optimized for Ryzen™ AI NPUs, delivering acceleration benefits from the very first run (aside from any initial CPU-side caching overhead).
 
 Run the examples as usual:
 
 ```bash
-./build/bin/whisper-cli -m models/ggml-base.en.bin -f samples/jfk.wav
+./build/bin/whisper-cli -m models/ggml-small.bin -f samples/jfk.wav
 ```
-
 
 ## NVIDIA GPU support
 
