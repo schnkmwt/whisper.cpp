@@ -120,9 +120,14 @@ jobs:
     timeout-minutes: 60
     continue-on-error: true   # advisory while the runner pool is new; revisit later
 
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [base, small]
+
     env:
       FLEXML_URL: https://github.com/lemonade-sdk/whisper.cpp-rocm/releases/download/deps/flexmlrt-1.7.0-win.zip
-      MODEL: base
+      MODEL: ${{ matrix.model }}
 
     steps:
       - name: Clone
@@ -202,7 +207,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vitisai-smoke-log-windows
+          name: vitisai-smoke-log-windows-${{ matrix.model }}
           path: vitisai.log
 
   npu-amd-linux:
@@ -210,9 +215,14 @@ jobs:
     timeout-minutes: 60
     continue-on-error: true   # advisory while the runner pool is new; revisit later
 
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [base, small]
+
     env:
       FLEXML_LINUX_URL: https://github.com/lemonade-sdk/whisper.cpp-rocm/releases/download/deps/flexmlrt-1.8.0-linux.tar.gz
-      MODEL: base
+      MODEL: ${{ matrix.model }}
 
     steps:
       - name: Clone
@@ -255,5 +265,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vitisai-smoke-log-linux
+          name: vitisai-smoke-log-linux-${{ matrix.model }}
           path: vitisai.log
