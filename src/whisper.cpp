@@ -3447,6 +3447,15 @@ static std::string whisper_openvino_get_path_cache(std::string path_bin) {
 }
 #endif
 
+// Add KV / ext-encoder time into reported load for the primary state only
+// (file/buffer/loader, or _no_state + first whisper_init_state). Extra
+// user-created states are left out of t_load_us.
+static void whisper_add_primary_load(whisper_context * ctx, whisper_state * state, int64_t us) {
+    if (ctx->state == nullptr || state == ctx->state) {
+        ctx->t_load_us += us;
+    }
+}
+
 struct whisper_state * whisper_init_state(whisper_context * ctx) {
     whisper_state * state = new whisper_state;
 
@@ -3459,6 +3468,7 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
 
     // at this point, we don't know yet how many decoders will be used
     // later during decoding, if more decoders are used, we will recreate the KV cache respectively
+    const int64_t t_kv0 = ggml_time_us();
     state->kv_self_n_dec = 1;
     if (!whisper_kv_cache_init(state->kv_self, state->backends[0], ctx->itype,
                 ctx->model.hparams.n_text_state,
@@ -3501,6 +3511,7 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
         const size_t memory_size = ggml_nbytes(state->kv_pad.k) + ggml_nbytes(state->kv_pad.v);
         WHISPER_LOG_INFO("%s: kv pad  size  = %7.2f MB\n", __func__, memory_size / 1e6);
     }
+    whisper_add_primary_load(ctx, state, ggml_time_us() - t_kv0);
 
     // [EXPERIMENTAL] Token-level timestamps with DTW
     if (ctx->params.dtw_token_timestamps) {
@@ -3513,6 +3524,7 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
         WHISPER_LOG_INFO("%s: alignment heads masks size = %ld B\n", __func__, memory_size);
     }
 
+    const int64_t t_extenc0 = ggml_time_us();
 #ifdef WHISPER_USE_COREML
     const auto path_coreml = whisper_get_coreml_path_encoder(ctx->path_model);
 
@@ -3557,6 +3569,8 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
         }
         WHISPER_LOG_INFO("%s: ANEForge encoder loaded\n", __func__);
     }
+
+    whisper_add_primary_load(ctx, state, ggml_time_us() - t_extenc0);
 
     state->logits.reserve(ctx->vocab.n_vocab * ctx->model.hparams.n_text_ctx);
 
@@ -3686,7 +3700,9 @@ int whisper_ctx_init_openvino_encoder_with_state(
     WHISPER_LOG_INFO("%s: loading OpenVINO model from '%s'\n", __func__, path_encoder.c_str());
     WHISPER_LOG_INFO("%s: first run on a device may take a while ...\n", __func__);
 
+    const int64_t t_ov0 = ggml_time_us();
     state->ctx_openvino = whisper_openvino_init(path_encoder.c_str(), device, path_cache.c_str());
+    whisper_add_primary_load(ctx, state, ggml_time_us() - t_ov0);
     if (!state->ctx_openvino) {
         WHISPER_LOG_ERROR("%s: failed to init OpenVINO encoder from '%s'\n", __func__, path_encoder.c_str());
         return 1;
